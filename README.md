@@ -78,13 +78,69 @@ Cloud API endpoint:
 
 ### Build & Run
 
-1. Use [Skaffold](https://skaffold.dev/) to streamline the build-and-run processes continuously:
+1. Add a `stable` tag to the `todoapi` image generated from the previous Lab 6.0, e.g.,
+
+   ```
+   % docker tag  244a0c739af3  todoapi:stable
+   ```
+
+   This `todoapi:stable` image will be used by the [todoapi-stable-service.yml](k8s/local/todoapi-stable-service.yml).
+
+2. Use [Skaffold](https://skaffold.dev/) to streamline the build-and-run processes continuously:
 
    ```
    % skaffold dev  -n todo
    ```
 
-2. Use your browser to visit the web app at http://localhost:30000
+3. Use your browser to visit the web app at http://localhost:30000
+
+
+### Canary
+
+1. See the number of pods in the deployments, including the *canary* part of the `todoapi` service:
+
+   ```
+   % kubectl get deployments -n todo
+   NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+   todoapi          3         3         3            3           14s
+   todoapi-canary   1         1         1            1           14s
+   todofrontend     3         3         3            3           14s
+   ```
+
+2. Scale the *canary* part from 1 to 2, either by:
+
+
+   ```
+   % kubectl scale --replicas=2 deployment/todoapi-canary  -n todo
+   ```
+
+   or by:
+
+   ```
+   % kubectl patch deployment todoapi-canary \
+       --patch "$(cat todoapi-canary-patch.yml)" -n todo
+   ```
+
+3. See again the number of pods in the deployments, including the *canary* part of the `todoapi` service:
+
+   ```
+   % kubectl get deployments -n todo
+   NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+   todoapi          3         3         3            3           2m
+   todoapi-canary   2         2         2            2           2m
+   todofrontend     3         3         3            3           2m
+
+   % kubectl get pods -n todo
+   NAME                              READY   STATUS    RESTARTS   AGE
+   todoapi-77f54c6f5d-9dkjh          1/1     Running   0          2m
+   todoapi-77f54c6f5d-grmfs          1/1     Running   0          2m
+   todoapi-77f54c6f5d-rdk7p          1/1     Running   0          2m
+   todoapi-canary-549dd65797-2rdxf   1/1     Running   0          2m
+   todoapi-canary-549dd65797-mn7db   1/1     Running   0          42s
+   todofrontend-67cc74bcbb-2zw4x     1/1     Running   0          2m
+   todofrontend-67cc74bcbb-w6fz5     1/1     Running   0          2m
+   todofrontend-67cc74bcbb-wdhmh     1/1     Running   0          2m
+   ```
 
 
 
@@ -132,7 +188,18 @@ Cloud API endpoint:
 
 ### Build & Run
 
-1. Use [Skaffold](https://skaffold.dev/) to streamline the build-and-run process continuously:
+1. Add a `stable` tag to the `gcr.io/PROJECT_ID/todoapi` image generated from the previous Lab 6.0, and push it to the cloud registry, e.g.,
+
+   ```
+   % docker tag  244a0c739af3  gcr.io/PROJECT_ID/todoapi:stable
+
+   % docker push gcr.io/PROJECT_ID/todoapi:stable
+   ```
+
+   This `gcr.io/PROJECT_ID/todoapi:stable` image will be used by the [todoapi-stable-service.yml](k8s/cloud/todoapi-stable-service.yml.tpl).
+
+
+2. Use [Skaffold](https://skaffold.dev/) to streamline the build-and-run process continuously:
 
    ```
    % skaffold dev -p cloud --default-repo gcr.io/PROJECT_ID  -n todo
@@ -144,8 +211,54 @@ Cloud API endpoint:
    % skaffold run -p cloud --default-repo gcr.io/PROJECT_ID  -n todo
    ```
 
+3. Use your browser to visit the web app at http://FRONTEND_EXTERNAL_IP:80
 
-2. Use your browser to visit the web app at http://FRONTEND_EXTERNAL_IP:80
+
+### Canary
+
+1. See the number of pods in the deployments, including the *canary* part of the `todoapi` service:
+
+   ```
+   % kubectl get deployments -n todo
+   NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+   todoapi          3         3         3            3           14s
+   todoapi-canary   1         1         1            1           14s
+   todofrontend     3         3         3            3           14s
+   ```
+
+2. Scale the *canary* part from 1 to 2, either by:
+
+   ```
+   % kubectl scale --replicas=2 deployment/todoapi-canary  -n todo
+   ```
+
+   or by:
+
+   ```
+   % kubectl patch deployment todoapi-canary \
+       --patch "$(cat todoapi-canary-patch.yml)" -n todo
+   ```
+
+3. See again the number of pods in the deployments, including the *canary* part of the `todoapi` service:
+
+   ```
+   % kubectl get deployments -n todo
+   NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+   todoapi          3         3         3            3           2m
+   todoapi-canary   2         2         2            2           2m
+   todofrontend     3         3         3            3           2m
+
+   % kubectl get pods -n todo
+   NAME                              READY   STATUS    RESTARTS   AGE
+   todoapi-77f54c6f5d-9dkjh          1/1     Running   0          2m
+   todoapi-77f54c6f5d-grmfs          1/1     Running   0          2m
+   todoapi-77f54c6f5d-rdk7p          1/1     Running   0          2m
+   todoapi-canary-549dd65797-2rdxf   1/1     Running   0          2m
+   todoapi-canary-549dd65797-mn7db   1/1     Running   0          42s
+   todofrontend-67cc74bcbb-2zw4x     1/1     Running   0          2m
+   todofrontend-67cc74bcbb-w6fz5     1/1     Running   0          2m
+   todofrontend-67cc74bcbb-wdhmh     1/1     Running   0          2m
+   ```
 
 
 ## Kubernetes dashboard
@@ -171,6 +284,8 @@ Apache License 2.0.  See the [LICENSE](LICENSE) file.
 
 
 ## History
+
+**7.0**: Support canary release.
 
 **6.0**: Support Kubernetes on the cloud (GKE for example) and use Skaffold to simplify the process.
 

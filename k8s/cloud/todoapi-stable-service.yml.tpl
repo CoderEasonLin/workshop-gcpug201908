@@ -2,28 +2,29 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: todofrontend
+  name: todoapi
   labels:
     app: todo
-    tier: frontend
+    tier: backend
 spec:
-  type: NodePort
+  type: LoadBalancer
+  loadBalancerIP: TODOAPI_IP_ADDR  # external IP (ephemeral or static)
   ports:
     - name: http
       port: 80
-      nodePort: 30000
+      targetPort: 80
   selector:
     app: todo
-    tier: frontend
+    tier: backend
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: todofrontend
+  name: todoapi
   labels:
     app: todo
-    tier: frontend
+    tier: backend
     track: stable
 
 spec:
@@ -31,7 +32,7 @@ spec:
   selector:
     matchLabels:
       app: todo
-      tier: frontend
+      tier: backend
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -42,23 +43,14 @@ spec:
     metadata:
       labels:
         app: todo
-        tier: frontend
+        tier: backend
     spec:
       containers:
-        - name: todofrontend
-          image: todofrontend
+        # STABLE track -- use "stable" tag here!
+        - name: todoapi
+          image: gcr.io/PROJECT_ID/todoapi:stable
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
-          envFrom:
-            - configMapRef:
-                name: config.local
-          #env:
-          #  - name: TODOAPI_HOST
-          #    value: "localhost"
-          #  - name: TODOAPI_PORT
-          #    value: "30080"
-          #  - name: TODOAPI_PATH
-          #    value: "api/todo"
       #dnsPolicy: ClusterFirst
       #restartPolicy: Always
